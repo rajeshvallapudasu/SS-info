@@ -2,6 +2,8 @@
 
 An interactive dashboard for **TGTRANSCO** (220/132/33 KV Huzurnagar Substation), featuring a dynamic Single Line Diagram (SLD) and a dedicated **Tower Locations & Geo-Mapping Table** with Google Maps integration.
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/rajeshvallapudasu/SS-info)
+
 ---
 
 ## 🚀 Features
