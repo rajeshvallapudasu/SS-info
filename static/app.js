@@ -1,11 +1,22 @@
-const { useState, useEffect } = React;
+const { useState, useEffect, useRef } = React;
 
 function App() {
     const [substationData, setSubstationData] = useState(null);
     const [selectedEquipment, setSelectedEquipment] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [zoomLevel, setZoomLevel] = useState(1);
+    const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth <= 1024 : false);
+    const scrollContainerRef = useRef(null);
 
     const GOOGLE_SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbyczowAg-w1ZDErilMq27LP6XN6Es7cmGIeiIC3Zvl4l43i5nU54186Ism9BeqtC12vRg/exec";
+
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth <= 1024);
+        };
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     useEffect(() => {
         if (GOOGLE_SHEETS_API_URL) {
@@ -79,6 +90,59 @@ function App() {
         }
     };
 
+    const zoomIn = () => {
+        setZoomLevel(prev => {
+            if (prev === 'fit') return 1.25;
+            return Math.min(2.5, Number((prev + 0.25).toFixed(2)));
+        });
+    };
+
+    const zoomOut = () => {
+        setZoomLevel(prev => {
+            if (prev === 'fit') return 0.75;
+            return Math.max(0.5, Number((prev - 0.25).toFixed(2)));
+        });
+    };
+
+    const zoomFit = () => setZoomLevel('fit');
+    const zoomReset = () => setZoomLevel(1);
+
+    const handleQuickSelect = (val) => {
+        if (!val || !substationData) return;
+        const [category, id] = val.split(':');
+        let found = null;
+        let typeName = "Equipment";
+
+        if (category === '220f') {
+            found = substationData.feeders220kV?.find(f => f.id === id);
+            typeName = "220kV Feeder";
+        } else if (category === '132f') {
+            found = substationData.feeders132kV?.find(f => f.id === id);
+            typeName = "132kV Feeder";
+        } else if (category === '33f') {
+            found = substationData.feeders33kV?.find(f => f.id === id);
+            typeName = "33kV Feeder";
+        } else if (category === 'ptr220') {
+            const list = substationData.ptrs220to132 || substationData.ptrs || [];
+            found = list.find(p => p.id === id);
+            typeName = "PTR 220/132kV";
+        } else if (category === 'ptr132') {
+            const list = substationData.ptrs132to33 || substationData.ptrs || [];
+            found = list.find(p => p.id === id);
+            typeName = "PTR 132/33kV";
+        }
+
+        if (found) {
+            handleEquipmentClick(found, typeName);
+            setTimeout(() => {
+                const el = document.getElementById(`eq-${id}`);
+                if (el && scrollContainerRef.current) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+                }
+            }, 100);
+        }
+    };
+
     if (loading) {
         return <div className="container" style={{ textAlign: "center", paddingTop: "5rem" }}><h2>Loading Substation Layout...</h2></div>;
     }
@@ -91,23 +155,23 @@ function App() {
     });
 
     return (
-        <div className="container" style={{ maxWidth: '100%', padding: '1rem' }}>
-            <div className="header" style={{ padding: '1.5rem', marginBottom: '1rem' }}>
+        <div className="container" style={{ maxWidth: '100%', padding: isMobile ? '0.5rem' : '1rem' }}>
+            <div className="header" style={{ padding: isMobile ? '1rem' : '1.5rem', marginBottom: '1rem' }}>
                 <div className="header-content">
                     <div className="header-title" style={{ flexWrap: 'wrap' }}>
-                        <div className="header-icon">⚡</div>
+                        <div className="header-icon" style={{ fontSize: isMobile ? '2.2rem' : '3rem' }}>⚡</div>
                         <div>
-                            <h1>{substationData.name} - Dynamic SLD</h1>
-                            <div className="header-subtitle" style={{ fontSize: '1.2rem', color: '#00d4ff', marginBottom: extraDetails.length > 0 ? '0.5rem' : '0' }}>
-                                High Visibility Layout | {substationData.voltage}
+                            <h1 style={{ fontSize: isMobile ? '1.4rem' : '2.2rem' }}>{substationData.name}</h1>
+                            <div className="header-subtitle" style={{ fontSize: isMobile ? '0.95rem' : '1.1rem', color: '#00d4ff', marginBottom: extraDetails.length > 0 ? '0.5rem' : '0' }}>
+                                Dynamic Single Line Diagram | {substationData.voltage}
                             </div>
                             {extraDetails.length > 0 && (
-                                <div className="extra-details" style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+                                <div className="extra-details" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.4rem' }}>
                                     {extraDetails.map(key => {
                                         const val = substationData[key];
                                         const isLink = typeof val === 'string' && val.startsWith('http');
                                         return (
-                                            <span key={key} style={{ background: 'rgba(0,212,255,0.1)', padding: '0.3rem 0.8rem', borderRadius: '4px', fontSize: '0.95rem', color: '#e2e8f0', border: '1px solid rgba(0,212,255,0.2)' }}>
+                                            <span key={key} style={{ background: 'rgba(0,212,255,0.1)', padding: '0.2rem 0.6rem', borderRadius: '4px', fontSize: '0.85rem', color: '#e2e8f0', border: '1px solid rgba(0,212,255,0.2)' }}>
                                                 <strong style={{ color: '#00d4ff', textTransform: 'capitalize' }}>{key.replace(/([A-Z])/g, ' $1').trim()}:</strong>{' '}
                                                 {isLink ? <a href={val} target="_blank" rel="noopener noreferrer" style={{color: '#fff', textDecoration: 'underline'}}>View Link</a> : val}
                                             </span>
@@ -117,44 +181,109 @@ function App() {
                             )}
                         </div>
                     </div>
-                    <div className="header-actions" style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', alignItems: 'flex-end' }}>
-                        <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                            <a href="/towers" className="control-btn" style={{ fontSize: '1rem', padding: '0.6rem 1.2rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', borderColor: '#ffd600', color: '#ffd600' }}>🗼 Tower Locations</a>
-                            <button className="control-btn" onClick={() => handleEquipmentClick({ __data: substationData.dcSystem || [] }, "DC System")} style={{ fontSize: '1rem', padding: '0.6rem 1.2rem', borderColor: '#00d4ff', color: '#00d4ff' }}>🔋 DC System</button>
-                            <button className="control-btn" onClick={() => handleEquipmentClick({ __data: substationData.staffDetails || [] }, "Staff Details")} style={{ fontSize: '1rem', padding: '0.6rem 1.2rem', borderColor: '#a855f7', color: '#a855f7' }}>👥 Staff Details</button>
-                        </div>
-                        <div style={{ display: 'flex', gap: '1rem' }}>
-                            <button className="control-btn" onClick={refreshLayout} style={{ fontSize: '1rem', padding: '0.6rem 1.2rem' }}>🔄 Refresh Layout</button>
-                            <button className="control-btn" onClick={toggleFullScreen} style={{ fontSize: '1rem', padding: '0.6rem 1.2rem' }}>🔲 Full Screen</button>
+                    <div className="header-actions">
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            <a href="/towers" className="control-btn" style={{ fontSize: '0.9rem', padding: '0.5rem 0.9rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', borderColor: '#ffd600', color: '#ffd600' }}>🗼 Tower Locations</a>
+                            <button className="control-btn" onClick={() => handleEquipmentClick({ __data: substationData.dcSystem || [] }, "DC System")} style={{ fontSize: '0.9rem', padding: '0.5rem 0.9rem', borderColor: '#00d4ff', color: '#00d4ff' }}>🔋 DC System</button>
+                            <button className="control-btn" onClick={() => handleEquipmentClick({ __data: substationData.staffDetails || [] }, "Staff Details")} style={{ fontSize: '0.9rem', padding: '0.5rem 0.9rem', borderColor: '#a855f7', color: '#a855f7' }}>👥 Staff</button>
+                            <button className="control-btn" onClick={refreshLayout} style={{ fontSize: '0.9rem', padding: '0.5rem 0.9rem' }}>🔄 Refresh</button>
+                            <button className="control-btn" onClick={toggleFullScreen} style={{ fontSize: '0.9rem', padding: '0.5rem 0.9rem' }}>🔲 Full</button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="dashboard-layout" style={{ gridTemplateColumns: '1fr 450px', minHeight: '85vh', gap: '1rem' }}>
-                <div id="sld-fullscreen-wrapper" className="diagram-area" style={{ padding: '1rem', overflow: 'hidden', backgroundColor: '#0a0e1a', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    <div className="sld-container" style={{ width: '100%', height: '100%', padding: '0', backgroundColor: 'transparent', border: 'none', display: 'flex', alignItems: 'center' }}>
+            <div className="dashboard-layout">
+                <div id="sld-fullscreen-wrapper" className="diagram-area" style={{ padding: 0 }}>
+                    {/* Diagram Controls Toolbar */}
+                    <div className="diagram-toolbar">
+                        <div className="diagram-controls-group">
+                            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 'bold' }}>SLD Zoom:</span>
+                            <button className="zoom-btn" onClick={zoomIn} title="Zoom In">➕ In</button>
+                            <button className="zoom-btn" onClick={zoomOut} title="Zoom Out">➖ Out</button>
+                            <button className={`zoom-btn ${zoomLevel === 'fit' ? 'active' : ''}`} onClick={zoomFit} title="Fit Entire Diagram to Screen">📐 Fit</button>
+                            <button className={`zoom-btn ${zoomLevel === 1 ? 'active' : ''}`} onClick={zoomReset} title="Reset to 100% Crisp View">↺ 100%</button>
+                            {zoomLevel !== 'fit' && (
+                                <span style={{ fontSize: '0.8rem', color: '#00d4ff', fontWeight: '600' }}>{Math.round(zoomLevel * 100)}%</span>
+                            )}
+                        </div>
+
+                        <div className="diagram-controls-group" style={{ flex: '1 1 auto', justifyContent: 'flex-end' }}>
+                            {isMobile && (
+                                <span className="orientation-hint">📱 Swipe to pan</span>
+                            )}
+                            <select className="mobile-feeder-select" onChange={e => handleQuickSelect(e.target.value)} defaultValue="">
+                                <option value="" disabled>⚡ Jump to Feeder / PTR...</option>
+                                <optgroup label="220KV Feeders">
+                                    {substationData.feeders220kV?.map(f => (
+                                        <option key={f.id} value={`220f:${f.id}`}>{f.name}</option>
+                                    ))}
+                                </optgroup>
+                                <optgroup label="220/132KV PTRs">
+                                    {(substationData.ptrs220to132 || substationData.ptrs?.filter(p => p.voltageRatio?.includes("220")) || []).map(p => (
+                                        <option key={p.id} value={`ptr220:${p.id}`}>{p.name} ({p.capacity})</option>
+                                    ))}
+                                </optgroup>
+                                <optgroup label="132KV Feeders">
+                                    {substationData.feeders132kV?.map(f => (
+                                        <option key={f.id} value={`132f:${f.id}`}>{f.name}</option>
+                                    ))}
+                                </optgroup>
+                                <optgroup label="132/33KV PTRs">
+                                    {(substationData.ptrs132to33 || substationData.ptrs?.filter(p => p.voltageRatio?.includes("132/33")) || []).map(p => (
+                                        <option key={p.id} value={`ptr132:${p.id}`}>{p.name} ({p.capacity})</option>
+                                    ))}
+                                </optgroup>
+                                <optgroup label="33KV Feeders">
+                                    {substationData.feeders33kV?.map(f => (
+                                        <option key={f.id} value={`33f:${f.id}`}>{f.name}</option>
+                                    ))}
+                                </optgroup>
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Scrollable / Pinchable Diagram Viewport */}
+                    <div ref={scrollContainerRef} className="sld-scroll-wrapper">
                         <DynamicSingleLineDiagram
                             data={substationData}
                             onEquipmentClick={handleEquipmentClick}
                             selectedEquipment={selectedEquipment}
+                            zoomLevel={zoomLevel}
+                            isMobile={isMobile}
                         />
                     </div>
                 </div>
 
-                <DetailPanel
-                    equipmentData={selectedEquipment}
-                    onClose={() => setSelectedEquipment(null)}
-                />
+                {/* Mobile Bottom-Sheet Drawer for Equipment Details */}
+                {selectedEquipment && isMobile && (
+                    <div className="mobile-detail-overlay" onClick={() => setSelectedEquipment(null)}>
+                        <div className="mobile-detail-sheet" onClick={e => e.stopPropagation()}>
+                            <div className="mobile-drag-handle"></div>
+                            <DetailPanel
+                                equipmentData={selectedEquipment}
+                                onClose={() => setSelectedEquipment(null)}
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {/* Desktop Side Panel */}
+                {!isMobile && (
+                    <DetailPanel
+                        equipmentData={selectedEquipment}
+                        onClose={() => setSelectedEquipment(null)}
+                    />
+                )}
             </div>
         </div>
     );
 }
 
 // ----------------------------------------------------------------------
-// Dynamic SVG SLD Generator (FITS ONE SCREEN)
+// Dynamic SVG SLD Generator (MOBILE COMPATIBLE & SCALABLE)
 // ----------------------------------------------------------------------
-function DynamicSingleLineDiagram({ data, onEquipmentClick, selectedEquipment }) {
+function DynamicSingleLineDiagram({ data, onEquipmentClick, selectedEquipment, zoomLevel, isMobile }) {
     if (!data) return null;
 
     const width = 1920;
@@ -169,8 +298,29 @@ function DynamicSingleLineDiagram({ data, onEquipmentClick, selectedEquipment })
     const ptrs220 = data.ptrs220to132 || (data.ptrs && data.ptrs.filter(p => p.voltageRatio && p.voltageRatio.includes("220"))) || [];
     const ptrs132 = data.ptrs132to33 || (data.ptrs && data.ptrs.filter(p => p.voltageRatio && p.voltageRatio.includes("132/33") && !p.voltageRatio.includes("220/132/33"))) || [];
 
+    // Calculate dimensions based on zoom & viewport mode
+    let svgStyle = { display: 'block', transition: 'width 0.2s ease-out, min-width 0.2s ease-out' };
+    if (zoomLevel === 'fit') {
+        svgStyle = {
+            ...svgStyle,
+            width: '100%',
+            height: 'auto',
+            maxHeight: isMobile ? '70vh' : '86vh',
+            minWidth: '100%'
+        };
+    } else {
+        const factor = zoomLevel || 1;
+        const targetWidth = Math.round((isMobile ? 1350 : 1850) * factor);
+        svgStyle = {
+            ...svgStyle,
+            width: `${targetWidth}px`,
+            minWidth: `${targetWidth}px`,
+            height: 'auto'
+        };
+    }
+
     return (
-        <svg style={{ width: '100%', height: '100%', maxHeight: '95vh', display: 'block' }} viewBox={`0 -120 ${width} ${height + 250}`} preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+        <svg style={svgStyle} viewBox={`0 -120 ${width} ${height + 250}`} preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
 
             {/* ====== 220kV BUSES ====== */}
             <line x1="20" y1={Y_220_MB1} x2={width - 20} y2={Y_220_MB1} className="bus-line" strokeWidth="6" stroke="#ff3838" />
@@ -181,7 +331,8 @@ function DynamicSingleLineDiagram({ data, onEquipmentClick, selectedEquipment })
 
             {/* Bus Coupler */}
             {data.buses220kV && data.buses220kV.busCoupler && (
-                <g className="feeder-group" onClick={() => onEquipmentClick(data.buses220kV.busCoupler, "Coupler")}>
+                <g id="eq-bc_220" className="feeder-group" onClick={() => onEquipmentClick(data.buses220kV.busCoupler, "Coupler")} style={{ cursor: 'pointer' }}>
+                    <rect x={(width / 2) - 40} y={Y_220_MB1} width="200" height={Y_220_MB2 - Y_220_MB1} fill="transparent" />
                     <line x1={width / 2} y1={Y_220_MB1} x2={width / 2} y2={Y_220_MB2} stroke="var(--text-secondary)" strokeWidth="3" />
                     <rect x={(width / 2) - 15} y={((Y_220_MB1 + Y_220_MB2) / 2) - 15} width="30" height="30" className={data.buses220kV.busCoupler.breaker?.status === 'Closed' ? 'breaker closed' : 'breaker open'} rx="4" />
                     <text x={(width / 2) + 25} y={((Y_220_MB1 + Y_220_MB2) / 2) + 8} fill="white" fontSize="22px" fontWeight="bold">BUS COUPLER</text>
@@ -199,7 +350,9 @@ function DynamicSingleLineDiagram({ data, onEquipmentClick, selectedEquipment })
                 if (!mb1Closed && !mb2Closed) startY = Y_220_MB1;
 
                 return (
-                    <g key={feeder.id || i} className={`feeder-group ${isActive ? 'active' : ''}`} onClick={() => onEquipmentClick(feeder, "220kV Feeder")}>
+                    <g id={`eq-${feeder.id || i}`} key={feeder.id || i} className={`feeder-group ${isActive ? 'active' : ''}`} onClick={() => onEquipmentClick(feeder, "220kV Feeder")} style={{ cursor: 'pointer' }}>
+                        {/* Invisible Touch Hit-box for Mobile */}
+                        <rect x={x - 45} y={startY - 130} width="90" height="150" fill="transparent" />
                         <line x1={x} y1={startY} x2={x} y2={50} stroke="#ff3838" strokeWidth="2" />
                         {(mb1Closed || mb2Closed) && <circle cx={x} cy={startY} r="5" fill="var(--accent-red)" />}
                         <rect x={x - 8} y={startY - 30} width="16" height="20" stroke="white" strokeWidth="2" fill="none" />
@@ -221,7 +374,9 @@ function DynamicSingleLineDiagram({ data, onEquipmentClick, selectedEquipment })
                 let startY = mb1Closed ? Y_220_MB1 : Y_220_MB2;
 
                 return (
-                    <g key={ptr.id || i} className={`feeder-group ${isActive ? 'active' : ''}`} onClick={() => onEquipmentClick(ptr, "PTR 220/132kV")}>
+                    <g id={`eq-${ptr.id || i}`} key={ptr.id || i} className={`feeder-group ${isActive ? 'active' : ''}`} onClick={() => onEquipmentClick(ptr, "PTR 220/132kV")} style={{ cursor: 'pointer' }}>
+                        {/* Invisible Touch Hit-box for Mobile */}
+                        <rect x={x - 50} y={startY} width="100" height={Y_132_BUS - startY} fill="transparent" />
                         <line x1={x} y1={startY} x2={x} y2={Y_132_BUS} stroke="#a855f7" strokeWidth="4" />
                         <rect x={x - 15} y={startY + 40} width="30" height="30" className={ptr.hvSide?.breaker?.status === 'Closed' ? 'breaker closed' : 'breaker open'} rx="3" />
                         <circle cx={x} cy={330} r="35" stroke="#a855f7" strokeWidth="3" fill="none" />
@@ -242,7 +397,9 @@ function DynamicSingleLineDiagram({ data, onEquipmentClick, selectedEquipment })
                 const x = 300 + (i * 180);
                 const isActive = selectedEquipment && selectedEquipment.id === feeder.id;
                 return (
-                    <g key={feeder.id || i} className={`feeder-group ${isActive ? 'active' : ''}`} onClick={() => onEquipmentClick(feeder, "132kV Feeder")}>
+                    <g id={`eq-${feeder.id || i}`} key={feeder.id || i} className={`feeder-group ${isActive ? 'active' : ''}`} onClick={() => onEquipmentClick(feeder, "132kV Feeder")} style={{ cursor: 'pointer' }}>
+                        {/* Invisible Touch Hit-box for Mobile */}
+                        <rect x={x - 45} y={Y_132_BUS} width="90" height="230" fill="transparent" />
                         <line x1={x} y1={Y_132_BUS} x2={x} y2={Y_132_BUS + 180} stroke="#00d4ff" strokeWidth="2" />
                         <rect x={x - 8} y={Y_132_BUS + 30} width="16" height="20" stroke="white" strokeWidth="2" fill="none" />
                         <rect x={x - 15} y={Y_132_BUS + 70} width="30" height="30" className={feeder.breaker?.status === 'Closed' ? 'breaker closed' : 'breaker open'} rx="3" />
@@ -259,7 +416,9 @@ function DynamicSingleLineDiagram({ data, onEquipmentClick, selectedEquipment })
                 const x = 1200 + (i * 300);
                 const isActive = selectedEquipment && selectedEquipment.id === ptr.id;
                 return (
-                    <g key={ptr.id || i} className={`feeder-group ${isActive ? 'active' : ''}`} onClick={() => onEquipmentClick(ptr, "PTR 132/33kV")}>
+                    <g id={`eq-${ptr.id || i}`} key={ptr.id || i} className={`feeder-group ${isActive ? 'active' : ''}`} onClick={() => onEquipmentClick(ptr, "PTR 132/33kV")} style={{ cursor: 'pointer' }}>
+                        {/* Invisible Touch Hit-box for Mobile */}
+                        <rect x={x - 50} y={Y_132_BUS} width="100" height={Y_33_BUS - Y_132_BUS} fill="transparent" />
                         <line x1={x} y1={Y_132_BUS} x2={x} y2={Y_33_BUS} stroke="#ffd600" strokeWidth="4" />
                         <rect x={x - 15} y={Y_132_BUS + 40} width="30" height="30" className={ptr.hvSide?.breaker?.status === 'Closed' ? 'breaker closed' : 'breaker open'} rx="3" />
                         <circle cx={x} cy={660} r="35" stroke="#ffd600" strokeWidth="3" fill="none" />
@@ -280,7 +439,9 @@ function DynamicSingleLineDiagram({ data, onEquipmentClick, selectedEquipment })
                 const x = 300 + (i * 200);
                 const isActive = selectedEquipment && selectedEquipment.id === feeder.id;
                 return (
-                    <g key={feeder.id || i} className={`feeder-group ${isActive ? 'active' : ''}`} onClick={() => onEquipmentClick(feeder, "33kV Feeder")}>
+                    <g id={`eq-${feeder.id || i}`} key={feeder.id || i} className={`feeder-group ${isActive ? 'active' : ''}`} onClick={() => onEquipmentClick(feeder, "33kV Feeder")} style={{ cursor: 'pointer' }}>
+                        {/* Invisible Touch Hit-box for Mobile */}
+                        <rect x={x - 45} y={Y_33_BUS} width="90" height="200" fill="transparent" />
                         <line x1={x} y1={Y_33_BUS} x2={x} y2={Y_33_BUS + 150} stroke="#00ff88" strokeWidth="2" />
                         <rect x={x - 15} y={Y_33_BUS + 40} width="30" height="30" className={feeder.breaker?.status === 'Closed' ? 'breaker closed' : 'breaker open'} rx="3" />
                         <circle cx={x} cy={Y_33_BUS + 95} r="10" stroke="white" strokeWidth="2" fill="none" />
