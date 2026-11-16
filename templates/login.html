@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="V. Rajesh">
+    <meta name="copyright" content="© 2026 V. Rajesh. All Rights Reserved.">
+    <title>Sign In &bull; TGTRANSCO 220/132/33 KV Huzurnagar — V. Rajesh</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 1.5rem;
+            margin: 0;
+            background: radial-gradient(circle at 50% 20%, #151f38 0%, #0a0e1a 75%, #05070d 100%);
+        }
+
+        .login-wrapper {
+            width: 100%;
+            max-width: 460px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .login-card {
+            background: linear-gradient(145deg, rgba(21, 27, 46, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%);
+            border: 2px solid #2a3548;
+            border-radius: 20px;
+            padding: 2.5rem 2rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 40px rgba(0, 212, 255, 0.12);
+            backdrop-filter: blur(12px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--accent-blue), var(--accent-purple), transparent);
+            animation: scanline 4s linear infinite;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .login-icon-box {
+            width: 68px;
+            height: 68px;
+            margin: 0 auto 1.25rem;
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.2) 0%, rgba(168, 85, 247, 0.2) 100%);
+            border: 2px solid var(--accent-blue);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2rem;
+            box-shadow: 0 0 25px rgba(0, 212, 255, 0.4);
+            animation: glow 2.5s ease-in-out infinite;
+        }
+
+        .login-title {
+            font-size: 1.45rem;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: 0.5px;
+            line-height: 1.3;
+            margin-bottom: 0.4rem;
+        }
+
+        .login-subtitle {
+            font-size: 0.9rem;
+            color: var(--accent-blue);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .login-division {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.12);
+            border: 1.5px solid rgba(239, 68, 68, 0.4);
+            color: #fca5a5;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            font-size: 0.88rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.35rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #cbd5e1;
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.4px;
+        }
+
+        .input-group {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 1rem;
+            color: #64748b;
+            font-size: 1.1rem;
+            pointer-events: none;
+            transition: color 0.2s ease;
+        }
+
+        .form-input {
+            width: 100%;
+            background: rgba(10, 14, 26, 0.8);
+            border: 1.5px solid #2a3548;
+            border-radius: 10px;
+            padding: 0.85rem 1rem 0.85rem 2.85rem;
+            color: #ffffff;
+            font-size: 0.95rem;
+            font-family: inherit;
+            outline: none;
+            transition: all 0.25s ease;
+        }
+
+        .form-input:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.25);
+            background: rgba(10, 14, 26, 0.95);
+        }
+
+        .form-input:focus + .input-icon {
+            color: var(--accent-blue);
+        }
+
+        .toggle-password-btn {
+            position: absolute;
+            right: 0.85rem;
+            background: none;
+            border: none;
+            color: #64748b;
+            cursor: pointer;
+            padding: 0.3rem;
+            font-size: 1.05rem;
+            transition: color 0.2s ease;
+        }
+
+        .toggle-password-btn:hover {
+            color: var(--accent-blue);
+        }
+
+        .form-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.6rem;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .checkbox-label input {
+            accent-color: var(--accent-blue);
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 0.95rem;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #00d4ff 0%, #0284c7 100%);
+            border: none;
+            color: #041026;
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            box-shadow: 0 6px 20px rgba(0, 212, 255, 0.35);
+            transition: all 0.25s ease;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 212, 255, 0.5);
+            background: linear-gradient(135deg, #38bdf8 0%, #0369a1 100%);
+        }
+
+        .btn-submit:active {
+            transform: translateY(0);
+        }
+
+        .credentials-hint {
+            margin-top: 1.75rem;
+            padding: 0.85rem 1rem;
+            background: rgba(0, 212, 255, 0.05);
+            border: 1px dashed rgba(0, 212, 255, 0.3);
+            border-radius: 10px;
+            font-size: 0.8rem;
+            color: #94a3b8;
+            line-height: 1.5;
+        }
+
+        .credentials-hint strong {
+            color: var(--accent-blue);
+        }
+
+        .login-footer {
+            margin-top: 2rem;
+            text-align: center;
+            font-size: 0.82rem;
+            color: #64748b;
+        }
+
+        .login-footer strong {
+            color: var(--accent-blue);
+        }
+    </style>
+</head>
+<body>
+    <div class="login-wrapper">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-icon-box">⚡</div>
+                <h1 class="login-title">TGTRANSCO Substation</h1>
+                <div class="login-subtitle">220/132/33 KV Huzurnagar Substation</div>
+                <div class="login-division">Asset Management &amp; Dynamic SLD Portal</div>
+            </div>
+
+            {% if error %}
+            <div class="alert-error">
+                <span>⚠️</span>
+                <span>{{ error }}</span>
+            </div>
+            {% endif %}
+
+            <form method="POST" action="{{ url_for('login', next=request.args.get('next', '')) }}" autocomplete="on">
+                <div class="form-group">
+                    <label class="form-label" for="username">Username</label>
+                    <div class="input-group">
+                        <input
+                            type="text"
+                            id="username"
+                            name="username"
+                            class="form-input"
+                            placeholder="Enter authorized username"
+                            required
+                            autofocus
+                            value="{{ request.form.get('username', '') }}"
+                        >
+                        <span class="input-icon">👤</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="password">Password</label>
+                    <div class="input-group">
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            class="form-input"
+                            placeholder="Enter password"
+                            required
+                        >
+                        <span class="input-icon">🔒</span>
+                        <button type="button" class="toggle-password-btn" id="togglePasswordBtn" title="Show/Hide Password">👁️</button>
+                    </div>
+                </div>
+
+                <div class="form-options">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="remember" value="1" checked>
+                        <span>Keep me signed in</span>
+                    </label>
+                    <span style="color: #64748b; font-size: 0.78rem;">Protected System</span>
+                </div>
+
+                <button type="submit" class="btn-submit">
+                    <span>⚡ Sign In to Substation</span>
+                    <span>→</span>
+                </button>
+
+                <div class="credentials-hint">
+                    <div style="font-weight: 600; color: #cbd5e1; margin-bottom: 0.25rem;">🔐 Authorized Access Credentials:</div>
+                    <div>&bull; Admin: <strong>admin</strong> / <strong>admin123</strong></div>
+                    <div>&bull; Engineer: <strong>rajesh</strong> / <strong>tgtransco2026</strong></div>
+                </div>
+            </form>
+        </div>
+
+        <div class="login-footer">
+            <div>&copy; 2026 <strong>V. Rajesh</strong>. All Rights Reserved.</div>
+            <div style="margin-top: 0.2rem; font-size: 0.75rem;">TGTRANSCO 220/132/33 KV Huzurnagar Substation Portal</div>
+        </div>
+    </div>
+
+    <script>
+        const toggleBtn = document.getElementById('togglePasswordBtn');
+        const passwordInput = document.getElementById('password');
+        if (toggleBtn && passwordInput) {
+            toggleBtn.addEventListener('click', () => {
+                const isPassword = passwordInput.getAttribute('type') === 'password';
+                passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
+                toggleBtn.textContent = isPassword ? '🙈' : '👁️';
+            });
+        }
+    </script>
+</body>
+</html>

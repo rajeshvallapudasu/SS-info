@@ -1,0 +1,126 @@
+{
+  "last_updated": "2026-11-16",
+  "author": "V. Rajesh",
+  "copyright": "\u00a9 2026 V. Rajesh. All Rights Reserved.",
+  "feeders": {
+    "Damercherla-1": {
+      "name": "220KV Damercherla-1",
+      "voltage": "220 KV",
+      "cr_pdf_url": "",
+      "breaker_pdf_url": "",
+      "notes": ""
+    },
+    "Damercherla-2": {
+      "name": "220KV Damercherla-2",
+      "voltage": "220 KV",
+      "cr_pdf_url": "",
+      "breaker_pdf_url": "",
+      "notes": ""
+    },
+    "Sithapuram": {
+      "name": "220KV Sithapuram",
+      "voltage": "220 KV",
+      "cr_pdf_url": "",
+      "breaker_pdf_url": "",
+      "notes": ""
+    },
+    "Narketpally": {
+      "name": "220KV Narketpally",
+      "voltage": "220 KV",
+      "cr_pdf_url": "",
+      "breaker_pdf_url": "",
+      "notes": ""
+    },
+    "220KV Bus Coupler": {
+      "name": "220KV Bus Coupler",
+      "voltage": "220 KV",
+      "cr_pdf_url": "",
+      "breaker_pdf_url": "",
+      "notes": ""
+    },
+    "Mattampally -1": {
+      "name": "132KV Mattampally-1",
+      "voltage": "132 KV",
+      "cr_pdf_url": "",
+      "breaker_pdf_url": "",
+      "notes": ""
+    },
+    "Mattampally -2": {
+      "name": "132KV Mattampally-2",
+      "voltage": "132 KV",
+      "cr_pdf_url": "",
+      "breaker_pdf_url": "",
+      "notes": ""
+    },
+    "Vepalasingaram -1": {
+      "name": "132KV Vepalasingaram-1",
+      "voltage": "132 KV",
+      "cr_pdf_url": "",
+      "breaker_pdf_url": "",
+      "notes": ""
+    },
+    "Vepalasingaram -2": {
+      "name": "132KV Vepalasingaram-2",
+      "voltage": "132 KV",
+      "cr_pdf_url": "",
+      "breaker_pdf_url": "",
+      "notes": ""
+    },
+    "132KV Bus Coupler": {
+      "name": "132KV Bus Coupler",
+      "voltage": "132 KV",
+      "cr_pdf_url": "",
+      "breaker_pdf_url": "",
+      "notes": ""
+    },
+    "Burugadda": {
+      "name": "33KV Burugadda",
+      "voltage": "33 KV",
+      "cr_pdf_url": "",
+      "breaker_pdf_url": "",
+      "notes": ""
+    },
+    "Huzurnagar": {
+      "name": "33KV Huzurnagar",
+      "voltage": "33 KV",
+      "cr_pdf_url": "",
+      "breaker_pdf_url": "",
+      "notes": ""
+    },
+    "Keethavarigudem": {
+      "name": "33KV Keethavarigudem",
+      "voltage": "33 KV",
+      "cr_pdf_url": "",
+      "breaker_pdf_url": "",
+      "notes": ""
+    },
+    "PTR-1": {
+      "name": "100MVA PTR-1 (220/132KV)",
+      "voltage": "220/132 KV",
+      "cr_pdf_url": "",
+      "breaker_pdf_url": "",
+      "notes": ""
+    },
+    "PTR-2": {
+      "name": "100MVA PTR-2 (220/132KV)",
+      "voltage": "220/132 KV",
+      "cr_pdf_url": "",
+      "breaker_pdf_url": "",
+      "notes": ""
+    },
+    "PTR-3": {
+      "name": "31.5MVA PTR-3 (132/33KV)",
+      "voltage": "132/33 KV",
+      "cr_pdf_url": "",
+      "breaker_pdf_url": "",
+      "notes": ""
+    },
+    "PTR-4": {
+      "name": "31.5MVA PTR-4 (132/33KV)",
+      "voltage": "132/33 KV",
+      "cr_pdf_url": "",
+      "breaker_pdf_url": "",
+      "notes": ""
+    }
+  }
+}

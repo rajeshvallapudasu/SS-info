@@ -1,12 +1,22 @@
 const { useState, useEffect, useRef } = React;
 
 function App() {
-    const [substationData, setSubstationData] = useState(null);
+    // Fast initial render: Immediately populate from localStorage or fallback template
+    const [substationData, setSubstationData] = useState(() => {
+        try {
+            const cached = localStorage.getItem('substationDataCache');
+            if (cached) return JSON.parse(cached);
+        } catch (e) {}
+        if (typeof window !== 'undefined' && window.SUBSTATION_DATA_TEMPLATE) {
+            return window.SUBSTATION_DATA_TEMPLATE;
+        }
+        return null;
+    });
     const [selectedEquipment, setSelectedEquipment] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(() => !substationData);
     const [zoomLevel, setZoomLevel] = useState(1);
     const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth <= 1024 : false);
-    const [drawingModal, setDrawingModal] = useState({ isOpen: false, feeder: 'Substation Overview', type: 'C&R Panel' });
+    const [drawingModal, setDrawingModal] = useState({ isOpen: false, feeder: 'Damercherla-1', type: 'C&R Panel' });
     const scrollContainerRef = useRef(null);
 
     const GOOGLE_SHEETS_API_URL = "https://script.google.com/macros/s/AKfycbyczowAg-w1ZDErilMq27LP6XN6Es7cmGIeiIC3Zvl4l43i5nU54186Ism9BeqtC12vRg/exec";
@@ -21,16 +31,7 @@ function App() {
 
     useEffect(() => {
         if (GOOGLE_SHEETS_API_URL) {
-            // Fast loading: Check Local Cache instantly
-            const cachedData = localStorage.getItem('substationDataCache');
-            if (cachedData) {
-                try {
-                    setSubstationData(JSON.parse(cachedData));
-                    setLoading(false); // Hide loading screen instantly
-                } catch (e) { console.error(e); }
-            }
-
-            // Fetch live layout updates in the background
+            // Fetch live layout updates in the background without blocking the UI
             fetch(GOOGLE_SHEETS_API_URL)
                 .then(res => res.json())
                 .then(res => {
@@ -185,11 +186,12 @@ function App() {
                     <div className="header-actions">
                         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                             <a href="/towers" className="control-btn" style={{ fontSize: '0.9rem', padding: '0.5rem 0.9rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', borderColor: '#ffd600', color: '#ffd600' }}>🗼 Tower Locations</a>
-                            <button className="control-btn" onClick={() => setDrawingModal({ isOpen: true, feeder: '220KV Damercherla-1', type: 'C&R Panel' })} style={{ fontSize: '0.9rem', padding: '0.5rem 0.9rem', borderColor: '#a855f7', color: '#c084fc', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>📐 Drawings</button>
+                            <button className="control-btn" onClick={() => setDrawingModal({ isOpen: true, feeder: 'Damercherla-1', type: 'C&R Panel' })} style={{ fontSize: '0.9rem', padding: '0.5rem 0.9rem', borderColor: '#a855f7', color: '#c084fc', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>📐 Drawings</button>
                             <button className="control-btn" onClick={() => handleEquipmentClick({ __data: substationData.dcSystem || [] }, "DC System")} style={{ fontSize: '0.9rem', padding: '0.5rem 0.9rem', borderColor: '#00d4ff', color: '#00d4ff' }}>🔋 DC System</button>
                             <button className="control-btn" onClick={() => handleEquipmentClick({ __data: substationData.staffDetails || [] }, "Staff Details")} style={{ fontSize: '0.9rem', padding: '0.5rem 0.9rem', borderColor: '#a855f7', color: '#a855f7' }}>👥 Staff</button>
                             <button className="control-btn" onClick={refreshLayout} style={{ fontSize: '0.9rem', padding: '0.5rem 0.9rem' }}>🔄 Refresh</button>
                             <button className="control-btn" onClick={toggleFullScreen} style={{ fontSize: '0.9rem', padding: '0.5rem 0.9rem' }}>🔲 Full</button>
+                            <a href="/logout" className="control-btn" style={{ fontSize: '0.9rem', padding: '0.5rem 0.9rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', borderColor: 'rgba(239, 68, 68, 0.45)', color: '#fca5a5' }}>🔒 Sign Out</a>
                         </div>
                     </div>
                 </div>
@@ -607,7 +609,7 @@ function DetailPanel({ equipmentData, onClose, onOpenDrawings }) {
                         onClick={() => onOpenDrawings && onOpenDrawings(equipmentData.name || type, 'C&R Panel')}
                         style={{ width: '100%', borderColor: '#a855f7', color: '#f3e8ff', background: 'rgba(168, 85, 247, 0.2)', padding: '0.6rem 0.8rem', fontSize: '0.88rem', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: '0.45rem', cursor: 'pointer', borderRadius: '6px' }}
                     >
-                        📐 View C&R Panel Drawing
+                        📐 View C&R Panel PDF
                     </button>
                     <button
                         type="button"
@@ -615,7 +617,7 @@ function DetailPanel({ equipmentData, onClose, onOpenDrawings }) {
                         onClick={() => onOpenDrawings && onOpenDrawings(equipmentData.name || type, 'Circuit Breaker')}
                         style={{ width: '100%', borderColor: '#00d4ff', color: '#e0f2fe', background: 'rgba(0, 212, 255, 0.15)', padding: '0.6rem 0.8rem', fontSize: '0.88rem', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: '0.45rem', cursor: 'pointer', borderRadius: '6px' }}
                     >
-                        ⚡ View Breaker Schematic Drawing
+                        ⚡ View Breaker Drawing PDF
                     </button>
                 </div>
             </div>
@@ -757,47 +759,99 @@ function DetailPanel({ equipmentData, onClose, onOpenDrawings }) {
 }
 
 // ----------------------------------------------------------------------
-// Technical Drawing Viewer Modal Component
+// Technical Drawing PDF Viewer Component (Clean PDF Slot Architecture)
 // ----------------------------------------------------------------------
 function DrawingViewerModal({ feeder, initialType, substationData, onClose }) {
-    const [selectedFeeder, setSelectedFeeder] = useState(feeder || "220KV Damercherla-1");
+    const [selectedFeeder, setSelectedFeeder] = useState(feeder || "Damercherla-1");
     const [drawingType, setDrawingType] = useState(initialType || "C&R Panel");
+    const [drawingsData, setDrawingsData] = useState({});
+    const [loadingDrawings, setLoadingDrawings] = useState(true);
+    const [showAttachForm, setShowAttachForm] = useState(false);
+    const [inputUrl, setInputUrl] = useState("");
+    const [saving, setSaving] = useState(false);
 
-    // Gather all feeders and PTR options
+    // Fetch drawings configuration from /api/drawings
+    useEffect(() => {
+        fetch('/api/drawings')
+            .then(res => res.json())
+            .then(res => {
+                if (res.status === 'success' && res.data) {
+                    setDrawingsData(res.data);
+                }
+                setLoadingDrawings(false);
+            })
+            .catch(err => {
+                console.error("Error loading drawings data:", err);
+                setLoadingDrawings(false);
+            });
+    }, []);
+
+    // Gather unique feeder names from substationData or fallback
     const feeders220 = substationData?.feeders220kV?.map(f => f.name) || [
-        "220KV Damercherla-1", "220KV Damercherla-2", "220KV Sithapuram", "220KV Narketpally"
+        "Damercherla-1", "Damercherla-2", "Sithapuram", "Narketpally"
     ];
     const feeders132 = substationData?.feeders132kV?.map(f => f.name) || [
-        "132KV Mattampally-1", "132KV Mattampally-2", "132KV Vepalasingaram-1", "132KV Vepalasingaram-2"
+        "Mattampally -1", "Mattampally -2", "Vepalasingaram -1", "Vepalasingaram -2"
     ];
-    const ptrs = [
-        "100MVA PTR-1 (220/132KV)",
-        "100MVA PTR-2 (220/132KV)",
-        "PTR-1 (132/33KV)",
-        "PTR-2 (132/33KV)"
-    ];
+    const ptrs = (substationData?.ptrs || substationData?.ptrs220to132 || []).map(p => p.name).length > 0
+        ? (substationData?.ptrs || []).map(p => p.name)
+        : ["PTR-1", "PTR-2", "PTR-3", "PTR-4"];
 
     const isCr = drawingType === "C&R Panel";
+    const typeLabel = isCr ? "C&R Panel Drawing (PDF)" : "Circuit Breaker Schematic Drawing (PDF)";
+
+    // Find feeder drawing data from dictionary
+    const currentFeederInfo = drawingsData[selectedFeeder] ||
+        Object.values(drawingsData).find(f => f.name === selectedFeeder || selectedFeeder.includes(f.name) || (f.name && f.name.includes(selectedFeeder))) ||
+        { name: selectedFeeder, cr_pdf_url: "", breaker_pdf_url: "" };
+
+    const pdfUrl = isCr ? currentFeederInfo.cr_pdf_url : currentFeederInfo.breaker_pdf_url;
+
+    const handleSavePdfUrl = (e) => {
+        e.preventDefault();
+        if (!inputUrl) return;
+        setSaving(true);
+        const payload = {
+            feeder: selectedFeeder,
+            cr_pdf_url: isCr ? inputUrl : (currentFeederInfo.cr_pdf_url || ""),
+            breaker_pdf_url: !isCr ? inputUrl : (currentFeederInfo.breaker_pdf_url || "")
+        };
+        fetch('/api/drawings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(res => {
+            if (res.status === 'success') {
+                setDrawingsData(prev => ({ ...prev, [selectedFeeder]: res.data }));
+                setShowAttachForm(false);
+                setInputUrl("");
+            }
+            setSaving(false);
+        })
+        .catch(() => setSaving(false));
+    };
 
     return (
         <div className="map-modal-overlay open" onClick={onClose} style={{ zIndex: 1100 }}>
-            <div className="map-modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '960px', width: '95vw', background: '#0b1120', border: '2px solid #2a3b5c', boxShadow: '0 25px 65px rgba(0,0,0,0.85)' }}>
+            <div className="map-modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '920px', width: '95vw', background: '#0b1120', border: '2px solid #2a3b5c', boxShadow: '0 25px 65px rgba(0,0,0,0.85)' }}>
                 {/* Header */}
                 <div className="map-modal-header" style={{ background: 'linear-gradient(90deg, #111a2e 0%, #17223b 100%)', borderBottom: '1px solid #243552', padding: '1.1rem 1.5rem' }}>
                     <div className="map-modal-title" style={{ fontSize: '1.25rem', color: '#c084fc', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                         <span>📐</span>
-                        <span>Technical Drawings Library &bull; {selectedFeeder}</span>
+                        <span>Technical Drawings &bull; {selectedFeeder}</span>
                     </div>
                     <button className="close-btn" onClick={onClose} style={{ fontSize: '1.8rem', color: '#94a3b8', background: 'transparent', border: 'none', cursor: 'pointer' }}>×</button>
                 </div>
 
-                {/* Sub-toolbar: Feeder Switcher & Drawing Type Selector */}
+                {/* Sub-toolbar: Feeder Switcher & Drawing Category */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', padding: '0.85rem 1.5rem', background: '#0d1527', borderBottom: '1px solid #1f2d47', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
                         <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Select Feeder/PTR:</span>
                         <select
                             value={selectedFeeder}
-                            onChange={e => setSelectedFeeder(e.target.value)}
+                            onChange={e => { setSelectedFeeder(e.target.value); setShowAttachForm(false); }}
                             style={{ background: '#1e293b', color: '#f8fafc', border: '1px solid #334155', borderRadius: '6px', padding: '0.4rem 0.8rem', fontSize: '0.88rem', outline: 'none' }}
                         >
                             <optgroup label="220KV Feeders">
@@ -806,7 +860,7 @@ function DrawingViewerModal({ feeder, initialType, substationData, onClose }) {
                             <optgroup label="132KV Feeders">
                                 {feeders132.map(name => <option key={name} value={name}>{name}</option>)}
                             </optgroup>
-                            <optgroup label="Power Transformers (PTRs)">
+                            <optgroup label="Transformers (PTRs)">
                                 {ptrs.map(name => <option key={name} value={name}>{name}</option>)}
                             </optgroup>
                         </select>
@@ -816,7 +870,7 @@ function DrawingViewerModal({ feeder, initialType, substationData, onClose }) {
                         <button
                             type="button"
                             className={`control-btn ${isCr ? 'active' : ''}`}
-                            onClick={() => setDrawingType("C&R Panel")}
+                            onClick={() => { setDrawingType("C&R Panel"); setShowAttachForm(false); }}
                             style={{
                                 padding: '0.45rem 0.9rem',
                                 fontSize: '0.85rem',
@@ -825,12 +879,12 @@ function DrawingViewerModal({ feeder, initialType, substationData, onClose }) {
                                 color: isCr ? '#d8b4fe' : 'var(--text-secondary)'
                             }}
                         >
-                            📐 C&R Panel Drawing
+                            📐 C&R Panel PDF
                         </button>
                         <button
                             type="button"
                             className={`control-btn ${!isCr ? 'active' : ''}`}
-                            onClick={() => setDrawingType("Circuit Breaker")}
+                            onClick={() => { setDrawingType("Circuit Breaker"); setShowAttachForm(false); }}
                             style={{
                                 padding: '0.45rem 0.9rem',
                                 fontSize: '0.85rem',
@@ -839,188 +893,124 @@ function DrawingViewerModal({ feeder, initialType, substationData, onClose }) {
                                 color: !isCr ? '#7dd3fc' : 'var(--text-secondary)'
                             }}
                         >
-                            ⚡ Breaker Schematic Drawing
+                            ⚡ Breaker Drawing PDF
                         </button>
                     </div>
                 </div>
 
-                {/* Blueprint Canvas View */}
-                <div className="map-modal-body" style={{ padding: '1.25rem 1.5rem', overflowY: 'auto', maxHeight: '72vh' }}>
-                    <div style={{
-                        background: '#041026',
-                        backgroundImage: 'radial-gradient(rgba(0, 212, 255, 0.12) 1px, transparent 1px), radial-gradient(rgba(0, 212, 255, 0.06) 1px, #041026 1px)',
-                        backgroundSize: '24px 24px',
-                        border: '2px solid #0284c7',
-                        borderRadius: '12px',
-                        padding: '1.5rem',
-                        position: 'relative',
-                        boxShadow: 'inset 0 0 40px rgba(0, 100, 200, 0.2)'
-                    }}>
-                        {/* Blueprint Corner Ticks */}
-                        <div style={{ position: 'absolute', top: '8px', left: '8px', width: '16px', height: '16px', borderTop: '2px solid #38bdf8', borderLeft: '2px solid #38bdf8' }}></div>
-                        <div style={{ position: 'absolute', top: '8px', right: '8px', width: '16px', height: '16px', borderTop: '2px solid #38bdf8', borderRight: '2px solid #38bdf8' }}></div>
-                        <div style={{ position: 'absolute', bottom: '8px', left: '8px', width: '16px', height: '16px', borderBottom: '2px solid #38bdf8', borderLeft: '2px solid #38bdf8' }}></div>
-                        <div style={{ position: 'absolute', bottom: '8px', right: '8px', width: '16px', height: '16px', borderBottom: '2px solid #38bdf8', borderRight: '2px solid #38bdf8' }}></div>
-
-                        {/* Top Substation Header Banner */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', borderBottom: '1px solid rgba(56, 189, 248, 0.3)', paddingBottom: '0.75rem', marginBottom: '1.25rem' }}>
-                            <div>
-                                <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#38bdf8', letterSpacing: '0.8px', textTransform: 'uppercase' }}>
-                                    TGTRANSCO 220/132/33 KV Huzurnagar Substation
+                {/* Drawing Content Area */}
+                <div className="map-modal-body" style={{ padding: '1.5rem', overflowY: 'auto', maxHeight: '72vh' }}>
+                    {pdfUrl ? (
+                        <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                <div>
+                                    <span style={{ background: 'rgba(0, 255, 136, 0.12)', color: 'var(--accent-green)', border: '1px solid rgba(0, 255, 136, 0.3)', padding: '0.25rem 0.6rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 600 }}>
+                                        ✓ Official PDF Available
+                                    </span>
+                                    <span style={{ marginLeft: '0.6rem', color: '#cbd5e1', fontSize: '0.9rem' }}>
+                                        {selectedFeeder} &bull; {typeLabel}
+                                    </span>
                                 </div>
-                                <div style={{ fontSize: '0.88rem', color: '#93c5fd', marginTop: '0.2rem' }}>
-                                    {isCr ? 'Control & Relay (C&R) Panel Schematic & Wiring Diagram' : 'Circuit Breaker Control, Trip & Interlocking Schematic'}
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <a
+                                        href={pdfUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="control-btn"
+                                        style={{ textDecoration: 'none', background: 'rgba(0, 212, 255, 0.15)', borderColor: '#00d4ff', color: '#38bdf8', fontSize: '0.85rem', padding: '0.4rem 0.85rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                                    >
+                                        📄 Open PDF Fullscreen ↗
+                                    </a>
+                                    <button
+                                        type="button"
+                                        className="control-btn"
+                                        onClick={() => setShowAttachForm(!showAttachForm)}
+                                        style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem', borderColor: '#64748b', color: '#94a3b8' }}
+                                    >
+                                        ✏️ Edit Link
+                                    </button>
                                 </div>
                             </div>
-                            <div style={{ textAlign: 'right' }}>
-                                <span style={{ background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', border: '1px solid #0284c7', borderRadius: '4px', padding: '0.25rem 0.6rem', fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.5px' }}>
-                                    OFFICIAL SCHEMATIC
-                                </span>
+
+                            {/* Embedded PDF Viewer */}
+                            <div style={{ width: '100%', height: '520px', borderRadius: '10px', overflow: 'hidden', border: '2px solid #1e293b', background: '#0a0e1a' }}>
+                                <iframe
+                                    src={pdfUrl}
+                                    width="100%"
+                                    height="100%"
+                                    style={{ border: 'none' }}
+                                    title={`${selectedFeeder} Drawing`}
+                                />
                             </div>
                         </div>
-
-                        {/* Schematic Architectural SVG Diagram */}
-                        <div style={{ width: '100%', minHeight: '260px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(2, 22, 54, 0.65)', border: '1px dashed rgba(56, 189, 248, 0.4)', borderRadius: '8px', padding: '1rem', marginBottom: '1.25rem' }}>
-                            {isCr ? (
-                                <svg viewBox="0 0 760 220" style={{ width: '100%', maxWidth: '720px', height: 'auto' }}>
-                                    {/* Busbar & Incomer */}
-                                    <line x1="40" y1="35" x2="720" y2="35" stroke="#38bdf8" strokeWidth="4" />
-                                    <text x="50" y="25" fill="#38bdf8" fontSize="12" fontWeight="bold">MAIN BUSBAR — 220KV / 132KV</text>
-
-                                    {/* Isolator 89 */}
-                                    <line x1="200" y1="35" x2="200" y2="70" stroke="#93c5fd" strokeWidth="2.5" />
-                                    <line x1="190" y1="70" x2="210" y2="70" stroke="#93c5fd" strokeWidth="2.5" />
-                                    <line x1="195" y1="70" x2="215" y2="90" stroke="#38bdf8" strokeWidth="2.5" />
-                                    <text x="220" y="80" fill="#bae6fd" fontSize="11">89 (Bus Isolator)</text>
-
-                                    {/* Circuit Breaker 52 */}
-                                    <line x1="200" y1="95" x2="200" y2="115" stroke="#93c5fd" strokeWidth="2.5" />
-                                    <rect x="185" y="115" width="30" height="30" fill="#0369a1" stroke="#38bdf8" strokeWidth="2" rx="4" />
-                                    <text x="193" y="134" fill="#ffffff" fontSize="11" fontWeight="bold">52</text>
-                                    <text x="225" y="133" fill="#bae6fd" fontSize="11">CB (Trip Coil 94)</text>
-
-                                    {/* Current Transformer CT */}
-                                    <line x1="200" y1="145" x2="200" y2="175" stroke="#93c5fd" strokeWidth="2.5" />
-                                    <circle cx="200" cy="180" r="10" fill="none" stroke="#38bdf8" strokeWidth="2" />
-                                    <circle cx="200" cy="190" r="10" fill="none" stroke="#38bdf8" strokeWidth="2" />
-                                    <text x="225" y="185" fill="#bae6fd" fontSize="11">CT Class PS / 5P20</text>
-
-                                    {/* Protection Relay Block */}
-                                    <rect x="420" y="70" width="280" height="120" fill="rgba(14, 116, 144, 0.25)" stroke="#38bdf8" strokeWidth="2" rx="8" />
-                                    <text x="435" y="95" fill="#38bdf8" fontSize="13" fontWeight="bold">C&R PANEL RELAYS & ANNUNCIATION</text>
-                                    <line x1="435" y1="105" x2="685" y2="105" stroke="rgba(56, 189, 248, 0.3)" strokeWidth="1" />
-                                    <text x="435" y="125" fill="#e0f2fe" fontSize="11">&bull; Numerical Distance Relay (21 / 21N)</text>
-                                    <text x="435" y="145" fill="#e0f2fe" fontSize="11">&bull; Backup Non-Directional Overcurrent (50/51)</text>
-                                    <text x="435" y="165" fill="#e0f2fe" fontSize="11">&bull; Master Trip Relay (86A / 86B) & Alarm (30)</text>
-
-                                    {/* Secondary Wiring Signal Path */}
-                                    <path d="M210 180 H350 V130 H420" fill="none" stroke="#a855f7" strokeWidth="2" strokeDasharray="4 4" />
-                                    <text x="260" y="145" fill="#d8b4fe" fontSize="10">CT Secondary (1A/5A)</text>
-                                    <path d="M420 155 H320 V130 H215" fill="none" stroke="#ef4444" strokeWidth="2" strokeDasharray="3 3" />
-                                    <text x="260" y="120" fill="#fca5a5" fontSize="10">DC Trip Signal (110V)</text>
-                                </svg>
-                            ) : (
-                                <svg viewBox="0 0 760 220" style={{ width: '100%', maxWidth: '720px', height: 'auto' }}>
-                                    {/* Breaker Control & Trip Circuit */}
-                                    <line x1="50" y1="35" x2="710" y2="35" stroke="#ef4444" strokeWidth="3" />
-                                    <text x="60" y="25" fill="#fca5a5" fontSize="12" fontWeight="bold">+110V DC CONTROL BUS</text>
-
-                                    <line x1="50" y1="195" x2="710" y2="195" stroke="#38bdf8" strokeWidth="3" />
-                                    <text x="60" y="210" fill="#bae6fd" fontSize="12" fontWeight="bold">-110V DC RETURN BUS</text>
-
-                                    {/* Branch 1: Close Circuit with Anti-pumping 52Y */}
-                                    <line x1="150" y1="35" x2="150" y2="60" stroke="#93c5fd" strokeWidth="2" />
-                                    <rect x="135" y="60" width="30" height="20" fill="rgba(2, 132, 199, 0.4)" stroke="#38bdf8" strokeWidth="1.5" />
-                                    <text x="140" y="74" fill="#ffffff" fontSize="9">TNC-C</text>
-                                    <line x1="150" y1="80" x2="150" y2="105" stroke="#93c5fd" strokeWidth="2" />
-                                    <circle cx="150" cy="120" r="15" fill="#0369a1" stroke="#38bdf8" strokeWidth="2" />
-                                    <text x="140" y="124" fill="#ffffff" fontSize="9" fontWeight="bold">52CC</text>
-                                    <text x="100" y="150" fill="#93c5fd" fontSize="10">Closing Coil</text>
-                                    <line x1="150" y1="135" x2="150" y2="195" stroke="#93c5fd" strokeWidth="2" />
-
-                                    {/* Branch 2: Trip Coil 1 (TC1) */}
-                                    <line x1="330" y1="35" x2="330" y2="60" stroke="#ef4444" strokeWidth="2" />
-                                    <rect x="315" y="60" width="30" height="20" fill="rgba(239, 68, 68, 0.3)" stroke="#ef4444" strokeWidth="1.5" />
-                                    <text x="320" y="74" fill="#ffffff" fontSize="9">86-A</text>
-                                    <line x1="330" y1="80" x2="330" y2="105" stroke="#ef4444" strokeWidth="2" />
-                                    <circle cx="330" cy="120" r="15" fill="#b91c1c" stroke="#f87171" strokeWidth="2" />
-                                    <text x="320" y="124" fill="#ffffff" fontSize="9" fontWeight="bold">TC1</text>
-                                    <text x="290" y="150" fill="#fca5a5" fontSize="10">Trip Coil 1</text>
-                                    <line x1="330" y1="135" x2="330" y2="195" stroke="#ef4444" strokeWidth="2" />
-
-                                    {/* Branch 3: Trip Coil 2 (TC2 - Redundant) */}
-                                    <line x1="510" y1="35" x2="510" y2="60" stroke="#ef4444" strokeWidth="2" />
-                                    <rect x="495" y="60" width="30" height="20" fill="rgba(239, 68, 68, 0.3)" stroke="#ef4444" strokeWidth="1.5" />
-                                    <text x="500" y="74" fill="#ffffff" fontSize="9">86-B</text>
-                                    <line x1="510" y1="80" x2="510" y2="105" stroke="#ef4444" strokeWidth="2" />
-                                    <circle cx="510" cy="120" r="15" fill="#b91c1c" stroke="#f87171" strokeWidth="2" />
-                                    <text x="500" y="124" fill="#ffffff" fontSize="9" fontWeight="bold">TC2</text>
-                                    <text x="470" y="150" fill="#fca5a5" fontSize="10">Trip Coil 2 (Dup)</text>
-                                    <line x1="510" y1="135" x2="510" y2="195" stroke="#ef4444" strokeWidth="2" />
-
-                                    {/* Branch 4: SF6 Pressure & Spring Charge Motor */}
-                                    <rect x="620" y="60" width="105" height="100" fill="rgba(16, 185, 129, 0.15)" stroke="#10b981" strokeWidth="1.5" rx="6" />
-                                    <text x="630" y="80" fill="#34d399" fontSize="10" fontWeight="bold">BREAKER AUX</text>
-                                    <text x="630" y="102" fill="#a7f3d0" fontSize="9">&bull; 63G SF6 OK</text>
-                                    <text x="630" y="122" fill="#a7f3d0" fontSize="9">&bull; 88M Motor OK</text>
-                                    <text x="630" y="142" fill="#a7f3d0" fontSize="9">&bull; 52a/b Contacts</text>
-                                </svg>
-                            )}
-                        </div>
-
-                        {/* Title Block in standard CAD blueprint lower corner */}
+                    ) : (
                         <div style={{
-                            background: '#0a1628',
-                            border: '1.5px solid #0284c7',
-                            borderRadius: '8px',
-                            padding: '0.85rem 1.25rem',
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                            gap: '0.75rem',
-                            fontSize: '0.85rem'
+                            background: 'rgba(15, 23, 42, 0.6)',
+                            border: '1.5px dashed rgba(148, 163, 184, 0.25)',
+                            borderRadius: '16px',
+                            padding: '3rem 2rem',
+                            textAlign: 'center'
                         }}>
-                            <div>
-                                <span style={{ color: '#64748b', fontSize: '0.75rem', textTransform: 'uppercase', display: 'block' }}>Substation / Division</span>
-                                <strong style={{ color: '#f8fafc' }}>TGTRANSCO Huzurnagar 220KV</strong>
+                            <div style={{ width: '64px', height: '64px', margin: '0 auto 1.25rem', background: 'rgba(168, 85, 247, 0.1)', border: '1.5px solid rgba(168, 85, 247, 0.3)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem' }}>
+                                📄
                             </div>
-                            <div>
-                                <span style={{ color: '#64748b', fontSize: '0.75rem', textTransform: 'uppercase', display: 'block' }}>Target Feeder / Equipment</span>
-                                <strong style={{ color: '#38bdf8' }}>{selectedFeeder}</strong>
+                            <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f8fafc', marginBottom: '0.4rem' }}>
+                                Drawing PDF Pending Upload
                             </div>
-                            <div>
-                                <span style={{ color: '#64748b', fontSize: '0.75rem', textTransform: 'uppercase', display: 'block' }}>Drawing Document Category</span>
-                                <strong style={{ color: '#c084fc' }}>{drawingType} Drawing</strong>
+                            <div style={{ fontSize: '0.95rem', color: 'var(--accent-blue)', fontWeight: 600, marginBottom: '0.75rem' }}>
+                                {selectedFeeder} &bull; {typeLabel}
                             </div>
-                            <div>
-                                <span style={{ color: '#64748b', fontSize: '0.75rem', textTransform: 'uppercase', display: 'block' }}>Engineer / Copyright</span>
-                                <strong style={{ color: '#4ade80' }}>&copy; 2026 V. Rajesh</strong>
-                            </div>
-                        </div>
+                            <p style={{ color: 'var(--text-secondary)', maxWidth: '540px', margin: '0 auto 1.5rem', fontSize: '0.88rem', lineHeight: '1.5' }}>
+                                The drawing slot for this feeder is configured. <strong>V. Rajesh</strong> will provide the official PDF drawing link.
+                            </p>
 
-                        {/* Repository Storage Notice */}
-                        <div style={{ marginTop: '1rem', padding: '0.75rem 1rem', background: 'rgba(56, 189, 248, 0.08)', border: '1px solid rgba(56, 189, 248, 0.25)', borderRadius: '6px', fontSize: '0.82rem', color: '#93c5fd', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                            <span>ℹ️</span>
-                            <span>
-                                <strong>Drawing Repository Notice:</strong> The schematic drawing profile for <strong>{selectedFeeder}</strong> is established. Full CAD drawings / master PDF schematics provided by <strong>V. Rajesh</strong> will be loaded securely from the server drawings library.
-                            </span>
+                            <button
+                                type="button"
+                                className="control-btn"
+                                onClick={() => setShowAttachForm(!showAttachForm)}
+                                style={{ margin: '0 auto', borderColor: 'var(--accent-purple)', color: '#d8b4fe', background: 'rgba(168, 85, 247, 0.15)', padding: '0.55rem 1.2rem', fontSize: '0.88rem' }}
+                            >
+                                🔗 {showAttachForm ? 'Cancel' : 'Add PDF Link for this Feeder'}
+                            </button>
                         </div>
-                    </div>
+                    )}
+
+                    {/* Inline Form to Attach/Update PDF Link */}
+                    {showAttachForm && (
+                        <div style={{ marginTop: '1.25rem', padding: '1.25rem', background: 'rgba(15, 23, 42, 0.9)', border: '1px solid var(--accent-purple)', borderRadius: '10px' }}>
+                            <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#d8b4fe', marginBottom: '0.5rem' }}>
+                                🔗 Attach PDF Link for {selectedFeeder} ({isCr ? 'C&R Panel' : 'Breaker Drawing'})
+                            </div>
+                            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.8rem' }}>
+                                Paste a Google Drive PDF link, cloud storage link, or local file path (e.g. <code>/static/drawings/{selectedFeeder.toLowerCase().replace(/[^a-z0-9]/g, '_')}.pdf</code>):
+                            </p>
+                            <form onSubmit={handleSavePdfUrl} style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+                                <input
+                                    type="text"
+                                    placeholder="Enter PDF URL (e.g. https://... or /static/drawings/...)"
+                                    value={inputUrl}
+                                    onChange={e => setInputUrl(e.target.value)}
+                                    style={{ flex: '1 1 300px', background: '#0a0e1a', border: '1px solid #334155', borderRadius: '6px', padding: '0.6rem 0.9rem', color: '#fff', fontSize: '0.88rem', outline: 'none' }}
+                                />
+                                <button
+                                    type="submit"
+                                    className="control-btn"
+                                    disabled={saving || !inputUrl}
+                                    style={{ borderColor: 'var(--accent-green)', color: 'var(--accent-green)', background: 'rgba(0, 255, 136, 0.1)', padding: '0.6rem 1.2rem', fontSize: '0.88rem' }}
+                                >
+                                    {saving ? 'Saving...' : '💾 Save Link'}
+                                </button>
+                            </form>
+                        </div>
+                    )}
                 </div>
 
                 {/* Footer Controls */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.5rem', background: '#0d1527', borderTop: '1px solid #1f2d47', flexWrap: 'wrap', gap: '0.75rem' }}>
                     <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                        &copy; 2026 V. Rajesh &bull; TGTRANSCO 220/132/33 KV Huzurnagar Substation
+                        &copy; 2026 <strong>V. Rajesh</strong> &bull; TGTRANSCO 220/132/33 KV Huzurnagar Substation
                     </div>
                     <div style={{ display: 'flex', gap: '0.6rem' }}>
-                        <button
-                            type="button"
-                            className="control-btn"
-                            onClick={() => window.print()}
-                            style={{ borderColor: '#38bdf8', color: '#38bdf8', fontSize: '0.85rem', padding: '0.45rem 0.9rem' }}
-                        >
-                            🖨️ Print Blueprint
-                        </button>
                         <button
                             type="button"
                             className="control-btn"

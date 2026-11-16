@@ -153,6 +153,9 @@
                         <button id="btnPrint" class="control-btn" style="display: inline-flex; align-items: center; gap: 0.4rem;">
                             🖨️ Print Report
                         </button>
+                        <a href="/logout" class="control-btn" style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem; border-color: rgba(239, 68, 68, 0.4); color: #fca5a5;">
+                            🔒 Sign Out
+                        </a>
                     </div>
 
                     <div style="display: flex; gap: 0.8rem; align-items: center; flex-wrap: wrap;">
@@ -613,21 +616,27 @@
             btnOpenDrawings.addEventListener("click", () => {
                 fetch("/api/drawings")
                     .then(res => res.json())
-                    .then(data => {
+                    .then(res => {
                         const container = document.getElementById("drawingsListContainer");
-                        if (data.drawings && data.drawings.length) {
-                            container.innerHTML = data.drawings.map(d => `
-                                <div style="background: rgba(10, 14, 26, 0.7); border: 1px solid var(--border-color); border-radius: 10px; padding: 1rem;">
-                                    <div style="font-weight: 700; color: #fff; font-size: 0.95rem; margin-bottom: 0.25rem;">${d.feeder}</div>
-                                    <div style="color: var(--accent-purple); font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem;">${d.type}</div>
-                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.75rem;">
-                                        <span style="font-size: 0.75rem; color: var(--accent-yellow); background: rgba(255, 214, 0, 0.12); padding: 0.2rem 0.5rem; border-radius: 4px;">${d.status}</span>
-                                        <button class="control-btn" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;" onclick="alert('Drawing file will be available once uploaded by V. Rajesh.')">
-                                            📄 View
-                                        </button>
+                        const feeders = res.data || {};
+                        const items = Object.entries(feeders);
+                        if (items.length) {
+                            container.innerHTML = items.map(([key, f]) => {
+                                const crLink = f.cr_pdf_url ? `<a href="${f.cr_pdf_url}" target="_blank" rel="noopener noreferrer" class="control-btn" style="padding: 0.35rem 0.65rem; font-size: 0.78rem; text-decoration: none; border-color: var(--accent-purple); color: #d8b4fe;">📐 C&R PDF ↗</a>` : `<span style="font-size: 0.75rem; color: #64748b; background: rgba(255,255,255,0.05); padding: 0.2rem 0.5rem; border-radius: 4px;">C&R: Pending</span>`;
+                                const brLink = f.breaker_pdf_url ? `<a href="${f.breaker_pdf_url}" target="_blank" rel="noopener noreferrer" class="control-btn" style="padding: 0.35rem 0.65rem; font-size: 0.78rem; text-decoration: none; border-color: var(--accent-blue); color: #7dd3fc;">⚡ Breaker PDF ↗</a>` : `<span style="font-size: 0.75rem; color: #64748b; background: rgba(255,255,255,0.05); padding: 0.2rem 0.5rem; border-radius: 4px;">Breaker: Pending</span>`;
+                                return `
+                                    <div style="background: rgba(10, 14, 26, 0.7); border: 1px solid var(--border-color); border-radius: 10px; padding: 1rem;">
+                                        <div style="font-weight: 700; color: #fff; font-size: 0.95rem; margin-bottom: 0.25rem;">${f.name || key}</div>
+                                        <div style="color: var(--accent-blue); font-size: 0.8rem; font-weight: 600; margin-bottom: 0.6rem;">${f.voltage || 'Substation Bay'}</div>
+                                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.6rem;">
+                                            ${crLink}
+                                            ${brLink}
+                                        </div>
                                     </div>
-                                </div>
-                            `).join("");
+                                `;
+                            }).join("");
+                        } else {
+                            container.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-secondary); padding: 2rem;">No drawings configured yet. Add PDF links in data/drawings.json</div>`;
                         }
                         drawingsModal.classList.add("open");
                     })
