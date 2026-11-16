@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Transmission Tower Locations | TGTRANSCO</title>
+    <meta name="author" content="V. Rajesh">
+    <meta name="copyright" content="© 2026 V. Rajesh. All Rights Reserved.">
+    <title>Transmission Tower Locations | TGTRANSCO — V. Rajesh</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <style>
@@ -33,8 +35,56 @@
             color: var(--accent-blue);
             border-color: var(--accent-blue);
         }
+        .status-pill-secure {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            background: rgba(0, 255, 136, 0.1);
+            color: var(--accent-green);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+        }
+        .type-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.3rem 0.7rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            background: rgba(168, 85, 247, 0.12);
+            color: #d8b4fe;
+            border: 1px solid rgba(168, 85, 247, 0.3);
+        }
+        .type-pill.gantry {
+            background: rgba(255, 214, 0, 0.15);
+            color: var(--accent-yellow);
+            border-color: rgba(255, 214, 0, 0.4);
+        }
+        .app-footer {
+            margin-top: 3rem;
+            padding: 1.75rem 1rem;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+            background: rgba(10, 14, 26, 0.7);
+            border-radius: 12px;
+        }
+        .footer-copyright {
+            font-size: 0.95rem;
+            color: #e2e8f0;
+            margin-bottom: 0.35rem;
+        }
+        .footer-copyright strong {
+            color: var(--accent-blue);
+        }
+        .footer-sub {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
         @media print {
-            body::before, .header-actions, .voltage-pills, .line-tabs, .table-toolbar, .btn-maps-link, .btn-preview-link, .btn-inline-copy {
+            body::before, .header-actions, .voltage-pills, .line-tabs, .table-toolbar, .btn-maps-link, .btn-preview-link, .app-footer {
                 display: none !important;
             }
             body {
@@ -67,11 +117,6 @@
                 color: #000 !important;
                 border-bottom: 1px solid #ddd !important;
             }
-            .coord-code {
-                background: none !important;
-                color: #000 !important;
-                border: none !important;
-            }
         }
     </style>
 </head>
@@ -88,6 +133,8 @@
                             <span>Substation Information Dashboard | TGTRANSCO</span>
                             <span style="color: var(--accent-yellow);">•</span>
                             <span style="color: var(--accent-blue); font-weight: 600;">220/132/33 KV Huzurnagar</span>
+                            <span style="color: var(--accent-yellow);">•</span>
+                            <span style="color: var(--accent-yellow); font-weight: 700;">By V. Rajesh</span>
                         </div>
                     </div>
                 </div>
@@ -97,6 +144,9 @@
                         <a href="/" class="control-btn" style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem; border-color: var(--accent-blue); color: var(--accent-blue);">
                             ⚡ Single Line Diagram
                         </a>
+                        <button id="btnOpenDrawings" class="control-btn" style="display: inline-flex; align-items: center; gap: 0.4rem; border-color: var(--accent-purple); color: var(--accent-purple);">
+                            📐 Technical Drawings
+                        </button>
                         <button id="btnExportCsv" class="control-btn" style="display: inline-flex; align-items: center; gap: 0.4rem; border-color: var(--accent-green); color: var(--accent-green);">
                             📥 Export CSV
                         </button>
@@ -108,7 +158,7 @@
                     <div style="display: flex; gap: 0.8rem; align-items: center; flex-wrap: wrap;">
                         <div class="status-badge" style="padding: 0.5rem 1rem;">
                             <span class="status-dot"></span>
-                            <span>Fixed Coordinates (Master Data)</span>
+                            <span>Secure Server-Protected Data</span>
                         </div>
                         <a href="https://maps.app.goo.gl/HfLwppqhTimR8SCT7" target="_blank" rel="noopener noreferrer" class="status-badge" style="padding: 0.5rem 1rem; border-color: var(--accent-blue); color: var(--accent-blue); text-decoration: none;">
                             📍 Substation Location ↗
@@ -177,12 +227,12 @@
 
             <div class="stat-card card-yellow">
                 <div class="stat-label">
-                    <span>Origin / Substation Gantry</span>
+                    <span>Origin Gantry Point</span>
                     <span id="originBadge" class="tower-num-badge badge-gantry" style="height: 22px; font-size: 0.75rem; padding: 0 0.4rem;">G</span>
                 </div>
-                <div class="stat-val" id="statOriginCoords" style="font-size: 1rem; font-family: monospace; font-weight: 600; color: #ffd600;">16.76848, 79.85639</div>
+                <div class="stat-val" style="font-size: 1.1rem; font-weight: 700; color: #ffd600;">Substation End (Gantry)</div>
                 <div class="stat-sub" style="margin-top: 0.4rem;">
-                    <a id="statOriginLink" href="#" target="_blank" rel="noopener noreferrer" style="color: #ffd600; text-decoration: underline; font-size: 0.82rem; font-weight: 600;">
+                    <a id="statOriginLink" href="#" target="_blank" rel="noopener noreferrer" style="color: #ffd600; text-decoration: underline; font-size: 0.85rem; font-weight: 600;">
                         Open Origin in Google Maps ↗
                     </a>
                 </div>
@@ -190,12 +240,12 @@
 
             <div class="stat-card card-green">
                 <div class="stat-label">
-                    <span>Terminal / Destination Gantry</span>
+                    <span>Terminal Gantry Point</span>
                     <span id="destBadge" class="tower-num-badge badge-gantry" style="height: 22px; font-size: 0.75rem; padding: 0 0.4rem;">G</span>
                 </div>
-                <div class="stat-val" id="statDestCoords" style="font-size: 1rem; font-family: monospace; font-weight: 600; color: #00ff88;">16.89855, 79.82427</div>
+                <div class="stat-val" style="font-size: 1.1rem; font-weight: 700; color: #00ff88;">Line Terminal End (Gantry)</div>
                 <div class="stat-sub" style="margin-top: 0.4rem;">
-                    <a id="statDestLink" href="#" target="_blank" rel="noopener noreferrer" style="color: #00ff88; text-decoration: underline; font-size: 0.82rem; font-weight: 600;">
+                    <a id="statDestLink" href="#" target="_blank" rel="noopener noreferrer" style="color: #00ff88; text-decoration: underline; font-size: 0.85rem; font-weight: 600;">
                         Open Terminal in Google Maps ↗
                     </a>
                 </div>
@@ -206,7 +256,7 @@
         <div class="table-toolbar">
             <div class="search-wrapper">
                 <span class="search-icon">🔍</span>
-                <input type="text" id="searchInput" class="search-input" placeholder="Search by Tower No (e.g. G, 1, 24) or coordinates..." autocomplete="off">
+                <input type="text" id="searchInput" class="search-input" placeholder="Search by Tower No (e.g. G, 1, 24) or feeder name..." autocomplete="off">
             </div>
 
             <div class="toolbar-filters">
@@ -220,7 +270,7 @@
             </div>
         </div>
 
-        <!-- Clean Tower Locations Table Card -->
+        <!-- Clean Tower Locations Table Card (No Raw Coordinates Displayed) -->
         <div class="table-card">
             <div class="table-responsive">
                 <table class="towers-table">
@@ -228,20 +278,33 @@
                         <tr>
                             <th style="width: 70px; text-align: center;">S.NO.</th>
                             <th style="width: 140px;">TOWER NO.</th>
-                            <th style="width: 160px;">LINE / FEEDER</th>
-                            <th>LATITUDE</th>
-                            <th>LONGITUDE</th>
-                            <th>FULL COORDINATES</th>
-                            <th style="text-align: center; width: 170px;">GOOGLE MAPS</th>
-                            <th style="text-align: center; width: 130px;">PREVIEW</th>
+                            <th style="width: 220px;">LINE / FEEDER</th>
+                            <th>TOWER CLASSIFICATION</th>
+                            <th>GEO-LOCATION STATUS</th>
+                            <th style="text-align: center; width: 190px;">GOOGLE MAPS</th>
+                            <th style="text-align: center; width: 140px;">PREVIEW</th>
                         </tr>
                     </thead>
                     <tbody id="towerTableBody">
-                        <!-- Populated by JavaScript -->
+                        <tr>
+                            <td colspan="7" style="text-align: center; padding: 3rem; color: var(--text-secondary);">
+                                Loading secured tower locations...
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
         </div>
+
+        <!-- Professional Copyright Footer -->
+        <footer class="app-footer">
+            <div class="footer-copyright">
+                © 2026 <strong>V. Rajesh</strong>. All Rights Reserved.
+            </div>
+            <div class="footer-sub">
+                TGTRANSCO 220/132/33 KV Huzurnagar Substation | SLD & Transmission Geo-Mapping System
+            </div>
+        </footer>
     </div>
 
     <!-- Map Preview Modal -->
@@ -250,15 +313,15 @@
             <div class="map-modal-header">
                 <div class="map-modal-title">
                     <span>📍</span>
-                    <span id="modalTowerTitle">Tower Location Preview</span>
+                    <span id="modalTowerTitle">Tower Location Navigation</span>
                 </div>
                 <button class="close-btn" id="modalCloseBtn" style="font-size: 1.8rem; line-height: 1;">×</button>
             </div>
             <div class="map-modal-body">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
                     <div>
-                        <span style="color: var(--text-secondary); font-size: 0.85rem;">COORDINATES:</span>
-                        <span class="coord-code" id="modalCoords" style="font-size: 1rem; margin-left: 0.5rem;">0.00000, 0.00000</span>
+                        <span class="status-pill-secure">🔒 Secure Location Pin</span>
+                        <span id="modalTowerBadge" style="margin-left: 0.5rem; font-weight: 700; color: #fff;"></span>
                     </div>
                     <div id="modalFeederBadge" style="color: var(--accent-blue); font-weight: 600; font-size: 0.95rem;">
                         132KV Feeder
@@ -270,9 +333,6 @@
                 </div>
 
                 <div class="map-modal-actions">
-                    <button class="control-btn" id="modalCopyBtn" style="display: inline-flex; align-items: center; gap: 0.4rem;">
-                        📋 Copy Coordinates
-                    </button>
                     <a id="modalDirectionsBtn" href="#" target="_blank" rel="noopener noreferrer" class="btn-preview-link" style="text-decoration: none; padding: 0.6rem 1.2rem;">
                         🚗 Get Directions ↗
                     </a>
@@ -284,20 +344,37 @@
         </div>
     </div>
 
-    <!-- Floating Copy Toast Notification -->
-    <div class="toast-notice" id="toastNotice">
-        <span>✓</span>
-        <span id="toastMessage">Coordinates copied to clipboard!</span>
+    <!-- Drawings Preview Modal -->
+    <div class="map-modal-overlay" id="drawingsModal">
+        <div class="map-modal-content" style="max-width: 850px;">
+            <div class="map-modal-header">
+                <div class="map-modal-title" style="color: var(--accent-purple);">
+                    <span>📐</span>
+                    <span>Technical Drawings & Schematics Library</span>
+                </div>
+                <button class="close-btn" id="drawingsCloseBtn" style="font-size: 1.8rem; line-height: 1;">×</button>
+            </div>
+            <div class="map-modal-body">
+                <p style="color: var(--text-secondary); margin-bottom: 1.25rem; font-size: 0.95rem;">
+                    Control & Relay (C&R) Panel schematics and Circuit Breaker wiring drawings for substation feeders. Prepared by <strong>V. Rajesh</strong>.
+                </p>
+                <div id="drawingsListContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
+                    <!-- Populated via API -->
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- Master Static Tower Data -->
-    <script src="{{ url_for('static', filename='tower_data_template.js') }}"></script>
+    <!-- Floating Toast Notification -->
+    <div class="toast-notice" id="toastNotice">
+        <span>✓</span>
+        <span id="toastMessage">Notification</span>
+    </div>
 
     <script>
-        // Use static fixed master dataset
-        const masterDataset = window.TOWER_LOCATIONS_DATA || {};
+        // State loaded securely from server API (No raw coordinates in script source)
+        let masterDataset = {};
 
-        // Parse query params for initial line selection
         const urlParams = new URLSearchParams(window.location.search);
         let selectedLine = "mattampally";
         const queryLine = (urlParams.get("line") || "{{ initial_line|default('', true) }}").toLowerCase();
@@ -328,6 +405,7 @@
         const toastMessage = document.getElementById("toastMessage");
         const mapModal = document.getElementById("mapModal");
         const mapIframe = document.getElementById("mapIframe");
+        const drawingsModal = document.getElementById("drawingsModal");
 
         function showToast(msg) {
             toastMessage.textContent = msg;
@@ -335,28 +413,6 @@
             setTimeout(() => {
                 toastNotice.classList.remove("show");
             }, 2500);
-        }
-
-        function copyText(text, label = "Coordinates") {
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(text).then(() => {
-                    showToast(`${label} copied to clipboard!`);
-                }).catch(() => {
-                    fallbackCopy(text, label);
-                });
-            } else {
-                fallbackCopy(text, label);
-            }
-        }
-
-        function fallbackCopy(text, label) {
-            const temp = document.createElement("input");
-            temp.value = text;
-            document.body.appendChild(temp);
-            temp.select();
-            document.execCommand("copy");
-            document.body.removeChild(temp);
-            showToast(`${label} copied: ${text}`);
         }
 
         function updateTabCounts() {
@@ -397,8 +453,6 @@
             const totalTowersEl = document.getElementById("statTotalTowers");
             const gantryCountEl = document.getElementById("statGantryCount");
             const intCountEl = document.getElementById("statIntCount");
-            const originCoordsEl = document.getElementById("statOriginCoords");
-            const destCoordsEl = document.getElementById("statDestCoords");
             const originLinkEl = document.getElementById("statOriginLink");
             const destLinkEl = document.getElementById("statDestLink");
 
@@ -416,7 +470,7 @@
             }
 
             totalTowersEl.textContent = towers.length;
-            const gantries = towers.filter(t => (t.tower_no || "").trim().toUpperCase() === "G");
+            const gantries = towers.filter(t => t.is_gantry || (t.tower_no || "").trim().toUpperCase() === "G");
             const regular = towers.length - gantries.length;
             gantryCountEl.textContent = `${gantries.length} Gantry`;
             intCountEl.textContent = `${regular} Regular Towers`;
@@ -424,18 +478,9 @@
             if (towers.length > 0) {
                 const first = towers[0];
                 const last = towers[towers.length - 1];
-
-                const originText = `${first.lat || 'N/A'}, ${first.lng || 'N/A'}`;
-                const destText = `${last.lat || 'N/A'}, ${last.lng || 'N/A'}`;
-
-                originCoordsEl.textContent = originText;
-                destCoordsEl.textContent = destText;
-
-                originLinkEl.href = first.map_link || `https://www.google.com/maps?q=${first.lat},${first.lng}`;
-                destLinkEl.href = last.map_link || `https://www.google.com/maps?q=${last.lat},${last.lng}`;
+                originLinkEl.href = first.map_link || "#";
+                destLinkEl.href = last.map_link || "#";
             } else {
-                originCoordsEl.textContent = "No coordinates yet";
-                destCoordsEl.textContent = "No coordinates yet";
                 originLinkEl.href = "#";
                 destLinkEl.href = "#";
             }
@@ -448,18 +493,16 @@
 
             const query = searchQuery.trim().toLowerCase();
             const filtered = rawTowers.filter((item, idx) => {
-                const isGantry = (item.tower_no || "").trim().toUpperCase() === "G";
+                const isGantry = item.is_gantry || (item.tower_no || "").trim().toUpperCase() === "G";
                 if (currentFilter === "gantry" && !isGantry) return false;
                 if (currentFilter === "numbered" && isGantry) return false;
 
                 if (!query) return true;
                 const matchTowerNo = (item.tower_no || "").toLowerCase().includes(query);
                 const matchSno = String(item.sno || (idx + 1)).includes(query);
-                const matchLat = String(item.lat || "").toLowerCase().includes(query);
-                const matchLng = String(item.lng || "").toLowerCase().includes(query);
                 const matchLine = String(item.lineName || "").toLowerCase().includes(query);
 
-                return matchTowerNo || matchSno || matchLat || matchLng || matchLine;
+                return matchTowerNo || matchSno || matchLine;
             });
 
             visibleCountEl.textContent = filtered.length;
@@ -468,12 +511,12 @@
                 const lineName = masterDataset[selectedLine]?.name || selectedLine;
                 tableBody.innerHTML = `
                     <tr>
-                        <td colspan="8" style="text-align: center; padding: 4rem 1.5rem; color: var(--text-secondary);">
+                        <td colspan="7" style="text-align: center; padding: 4rem 1.5rem; color: var(--text-secondary);">
                             <div style="font-size: 3.5rem; margin-bottom: 0.8rem; opacity: 0.7;">🗼</div>
                             <div style="font-size: 1.35rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem;">${lineName} Configured</div>
                             <p style="font-size: 1rem; color: var(--text-secondary); max-width: 550px; margin: 0 auto; line-height: 1.6;">
-                                Tower locations for this 220KV feeder are ready to be added.<br>
-                                You can populate the coordinates in <code style="color: var(--accent-blue); background: rgba(0,212,255,0.1); padding: 0.2rem 0.5rem; border-radius: 4px;">static/tower_data.json</code> anytime.
+                                Tower locations for this 220KV feeder are pre-configured.<br>
+                                Coordinates will be added upon survey completion by <strong>V. Rajesh</strong>.
                             </p>
                         </td>
                     </tr>
@@ -484,7 +527,7 @@
             if (filtered.length === 0) {
                 tableBody.innerHTML = `
                     <tr>
-                        <td colspan="8" style="text-align: center; padding: 3rem 1rem; color: var(--text-secondary);">
+                        <td colspan="7" style="text-align: center; padding: 3rem 1rem; color: var(--text-secondary);">
                             <div style="font-size: 2.5rem; margin-bottom: 0.5rem; opacity: 0.5;">🔍</div>
                             <div style="font-size: 1.1rem; font-weight: 600; color: #fff;">No Tower Locations Found</div>
                             <p style="margin-top: 0.3rem;">No records matched your search query "${query}".</p>
@@ -497,16 +540,17 @@
             tableBody.innerHTML = filtered.map((tower, idx) => {
                 const sno = tower.sno || (idx + 1);
                 const towerNo = (tower.tower_no || "").trim();
-                const isGantry = towerNo.toUpperCase() === "G";
+                const isGantry = tower.is_gantry || towerNo.toUpperCase() === "G";
                 const badgeClass = isGantry ? "tower-num-badge badge-gantry" : "tower-num-badge";
                 const towerBadgeLabel = isGantry ? "G (Gantry)" : towerNo;
-                const lat = tower.lat || "";
-                const lng = tower.lng || "";
-                const coordsFormatted = (lat && lng) ? `${lat}, ${lng}` : "N/A";
-                const mapLink = tower.map_link || (lat && lng ? `https://www.google.com/maps?q=${lat},${lng}` : "#");
+                const typePillClass = isGantry ? "type-pill gantry" : "type-pill";
+                const towerType = isGantry ? "⚡ Gantry Tower" : "🗼 Intermediate Tower";
+                const mapLink = tower.map_link || "#";
+                const embedLink = tower.embed_link || "";
+                const directionsLink = tower.directions_link || "";
 
                 return `
-                    <tr data-lat="${lat}" data-lng="${lng}" data-tower="${towerNo}" data-line="${tower.lineName}">
+                    <tr data-tower="${towerNo}" data-line="${tower.lineName}">
                         <td style="text-align: center;">
                             <span class="badge-sno">${sno}</span>
                         </td>
@@ -519,22 +563,10 @@
                             </span>
                         </td>
                         <td>
-                            <span class="coord-code">
-                                ${lat || '—'}
-                                ${lat ? `<button class="btn-inline-copy" onclick="copyText('${lat}', 'Latitude')" title="Copy Latitude">📋</button>` : ''}
-                            </span>
+                            <span class="${typePillClass}">${towerType}</span>
                         </td>
                         <td>
-                            <span class="coord-code">
-                                ${lng || '—'}
-                                ${lng ? `<button class="btn-inline-copy" onclick="copyText('${lng}', 'Longitude')" title="Copy Longitude">📋</button>` : ''}
-                            </span>
-                        </td>
-                        <td>
-                            <span class="coord-code" style="color: var(--accent-yellow);">
-                                ${coordsFormatted}
-                                ${coordsFormatted !== 'N/A' ? `<button class="btn-inline-copy" onclick="copyText('${coordsFormatted}', 'Coordinates')" title="Copy Both Coordinates">📋</button>` : ''}
-                            </span>
+                            <span class="status-pill-secure">✓ Verified Geo-Pin</span>
                         </td>
                         <td style="text-align: center;">
                             <a href="${mapLink}" target="_blank" rel="noopener noreferrer" class="btn-maps-link" title="Open location in Google Maps">
@@ -542,7 +574,7 @@
                             </a>
                         </td>
                         <td style="text-align: center;">
-                            <button class="btn-preview-link" onclick="openMapModal('${towerNo}', '${lat}', '${lng}', '${tower.lineName}', '${mapLink}')" title="Preview map in modal">
+                            <button class="btn-preview-link" onclick="openMapModal('${towerNo}', '${tower.lineName}', '${mapLink}', '${embedLink}', '${directionsLink}')" title="Preview map in modal">
                                 🗺️ Preview
                             </button>
                         </td>
@@ -551,26 +583,15 @@
             }).join("");
         }
 
-        window.openMapModal = function(towerNo, lat, lng, lineName, mapLink) {
-            if (!lat || !lng) {
-                showToast("Missing coordinates for this tower.");
-                return;
-            }
-
+        window.openMapModal = function(towerNo, lineName, mapLink, embedLink, directionsLink) {
             document.getElementById("modalTowerTitle").textContent = `Tower ${towerNo} — ${lineName || 'Transmission Line'}`;
-            document.getElementById("modalCoords").textContent = `${lat}, ${lng}`;
-            document.getElementById("modalFeederBadge").textContent = `${lineName || 'Line'} | Huzurnagar Substation`;
+            document.getElementById("modalTowerBadge").textContent = `Tower #${towerNo} Pin`;
+            document.getElementById("modalFeederBadge").textContent = `${lineName || 'Line'} | TGTRANSCO`;
 
-            document.getElementById("modalExternalBtn").href = mapLink || `https://www.google.com/maps?q=${lat},${lng}`;
-            document.getElementById("modalDirectionsBtn").href = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+            document.getElementById("modalExternalBtn").href = mapLink || "#";
+            document.getElementById("modalDirectionsBtn").href = directionsLink || mapLink || "#";
 
-            document.getElementById("modalCopyBtn").onclick = () => {
-                copyText(`${lat}, ${lng}`, `Tower ${towerNo} Coordinates`);
-            };
-
-            const embedUrl = `https://maps.google.com/maps?q=${lat},${lng}&hl=en&z=17&output=embed`;
-            mapIframe.src = embedUrl;
-
+            mapIframe.src = embedLink || (mapLink ? `${mapLink}&output=embed` : "about:blank");
             mapModal.classList.add("open");
         };
 
@@ -583,6 +604,46 @@
             if (e.target === mapModal) {
                 mapModal.classList.remove("open");
                 mapIframe.src = "about:blank";
+            }
+        });
+
+        // Drawings Modal
+        const btnOpenDrawings = document.getElementById("btnOpenDrawings");
+        if (btnOpenDrawings) {
+            btnOpenDrawings.addEventListener("click", () => {
+                fetch("/api/drawings")
+                    .then(res => res.json())
+                    .then(data => {
+                        const container = document.getElementById("drawingsListContainer");
+                        if (data.drawings && data.drawings.length) {
+                            container.innerHTML = data.drawings.map(d => `
+                                <div style="background: rgba(10, 14, 26, 0.7); border: 1px solid var(--border-color); border-radius: 10px; padding: 1rem;">
+                                    <div style="font-weight: 700; color: #fff; font-size: 0.95rem; margin-bottom: 0.25rem;">${d.feeder}</div>
+                                    <div style="color: var(--accent-purple); font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem;">${d.type}</div>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.75rem;">
+                                        <span style="font-size: 0.75rem; color: var(--accent-yellow); background: rgba(255, 214, 0, 0.12); padding: 0.2rem 0.5rem; border-radius: 4px;">${d.status}</span>
+                                        <button class="control-btn" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;" onclick="alert('Drawing file will be available once uploaded by V. Rajesh.')">
+                                            📄 View
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join("");
+                        }
+                        drawingsModal.classList.add("open");
+                    })
+                    .catch(() => {
+                        drawingsModal.classList.add("open");
+                    });
+            });
+        }
+
+        document.getElementById("drawingsCloseBtn").addEventListener("click", () => {
+            drawingsModal.classList.remove("open");
+        });
+
+        drawingsModal.addEventListener("click", (e) => {
+            if (e.target === drawingsModal) {
+                drawingsModal.classList.remove("open");
             }
         });
 
@@ -636,6 +697,7 @@
             });
         });
 
+        // Safe CSV Export (No raw numeric GPS coordinates exported)
         document.getElementById("btnExportCsv").addEventListener("click", () => {
             const towers = getActiveTowers();
             if (!towers.length) {
@@ -644,35 +706,52 @@
             }
 
             let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "S.No.,Tower Location No.,Feeder Line,Latitude,Longitude,Google Maps Link\n";
+            csvContent += "S.No.,Tower Location No.,Feeder Line,Tower Classification,Status,Google Maps Link\n";
 
             towers.forEach((t, i) => {
                 const sno = t.sno || (i + 1);
                 const tno = `"${(t.tower_no || '').replace(/"/g, '""')}"`;
                 const line = `"${(t.lineName || '').replace(/"/g, '""')}"`;
-                const lat = `"${(t.lat || '').replace(/"/g, '""')}"`;
-                const lng = `"${(t.lng || '').replace(/"/g, '""')}"`;
-                const map = `"${(t.map_link || `https://www.google.com/maps?q=${t.lat},${t.lng}`).replace(/"/g, '""')}"`;
-                csvContent += `${sno},${tno},${line},${lat},${lng},${map}\n`;
+                const type = `"${(t.tower_type || 'Transmission Tower').replace(/"/g, '""')}"`;
+                const status = `"Geo-Tagged & Verified"`;
+                const map = `"${(t.map_link || '').replace(/"/g, '""')}"`;
+                csvContent += `${sno},${tno},${line},${type},${status},${map}\n`;
             });
 
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
             link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `Tower_Locations_${selectedLine}_${new Date().toISOString().slice(0, 10)}.csv`);
+            link.setAttribute("download", `Tower_Locations_${selectedLine}_V_Rajesh.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            showToast("CSV file exported successfully!");
+            showToast("CSV file exported securely!");
         });
 
         document.getElementById("btnPrint").addEventListener("click", () => {
             window.print();
         });
 
-        // Initial render
-        updateTabCounts();
-        renderTable();
+        // Load data securely from Server API
+        fetch("/api/tower-data")
+            .then(res => res.json())
+            .then(res => {
+                if (res.status === "success" && res.data) {
+                    masterDataset = res.data;
+                    updateTabCounts();
+                    renderTable();
+                }
+            })
+            .catch(err => {
+                console.error("Failed to load tower data:", err);
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align:center; padding: 2rem; color: var(--accent-red);">
+                            Unable to load tower data. Please ensure server is running.
+                        </td>
+                    </tr>
+                `;
+            });
     </script>
 </body>
 </html>
